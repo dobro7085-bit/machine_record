@@ -1,0 +1,8 @@
+# baseline_override.csv — (선택) 기준일 수동 지정
+#
+# 기본은 비어 있습니다. 값을 넣으면 해당 (standard_line, master_item)의
+# "데이터상 첫 교체일(기준점)"보다 이 baseline_date 가 우선합니다.
+# 기본 동작(이 파일이 비어 있을 때)은 데이터에서 analysis_start 이후 첫 교체일을 기준으로 삼는 것입니다.
+#
+# 날짜 형식: YYYY-MM-DD
+standard_line,master_item,baseline_date

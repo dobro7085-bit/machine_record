@@ -1,0 +1,29 @@
+# 실데이터 (커밋 금지)
+data/
+output/
+
+# 엑셀 원본 전반 금지 — 단, data_sample/ 과 config/ 는 아래에서 예외 허용
+*.xls
+*.xlsx
+
+# data_sample/ 샘플과 config/ 는 커밋 대상 (위 *.xls(x) 금지의 예외)
+!data_sample/
+!data_sample/**
+!config/
+!config/**
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# OS/IDE
+.DS_Store
+.idea/
+.vscode/

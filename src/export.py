@@ -82,6 +82,7 @@ def export_result(
         wb.remove(default_sheet)
 
     _sheet_summary(wb.create_sheet("요약"), judgements, master_rows, as_of, coverage)
+    _sheet_compare(wb.create_sheet("교체비교"), judgements)
     _sheet_detail(wb.create_sheet("상세"), judgements)
     _sheet_overdue(wb.create_sheet("미교체현황"), judgements)
     _sheet_unmatched(wb.create_sheet("미매칭"), unmatched)
@@ -143,21 +144,96 @@ def _sheet_summary(ws, judgements, master_rows, as_of, coverage) -> None:
     _auto_width(ws)
 
 
-def _sheet_detail(ws, judgements) -> None:
+def _deviation_label(j) -> str:
+    """편차를 사람이 읽기 쉬운 '○일 빠름/늦음'으로 변환."""
+    if j.verdict == VERDICT_NOT_REPLACED:
+        return f"{j.deviation_days}일 지남(미교체)" if j.deviation_days is not None else "미교체"
+    if j.deviation_days is None:
+        return ""
+    if j.deviation_days < 0:
+        return f"{-j.deviation_days}일 빠름"
+    if j.deviation_days > 0:
+        return f"{j.deviation_days}일 늦음"
+    return "정확"
+
+
+def _sheet_compare(ws, judgements) -> None:
+    """예상 vs 실제 교체일을 나란히 비교하는 핵심 시트.
+
+    실제로 비교가 성립한 행(조기·정시·지연·미교체)만 모으고,
+    늦은 것(미교체·지연)을 맨 위로 올려 한눈에 들어오게 한다.
+    기준설정·기록없음은 비교 대상이 아니므로 여기서는 제외(상세 시트에서 확인).
+    """
     header = [
-        "호기", "공정(설비)", "교체 항목", "등급", "주기(일)",
-        "직전교체일", "예상교체일", "실제교체일", "편차_일",
-        "판정", "출처", "확인필요", "원문",
+        "호기", "공정(설비)", "교체 항목", "등급",
+        "예상교체일", "실제교체일", "편차(일)", "빠름/늦음", "판정",
     ]
     ws.append(header)
     for cell in ws[1]:
         cell.font = _FONT_BOLD
 
-    for j in sorted(judgements, key=lambda x: (x.standard_line, x.process, x.master_item, x.actual_date or dt.date.min)):
+    # 비교 성립 판정만: 조기/정시/지연/미교체
+    comparable = [
+        j for j in judgements
+        if j.verdict in (VERDICT_LATE, VERDICT_NOT_REPLACED, VERDICT_ONTIME, VERDICT_EARLY)
+    ]
+    sort_priority_by_verdict = {
+        VERDICT_NOT_REPLACED: 0, VERDICT_LATE: 1, VERDICT_ONTIME: 2, VERDICT_EARLY: 3,
+    }
+    comparable.sort(
+        key=lambda x: (sort_priority_by_verdict.get(x.verdict, 9), -(x.deviation_days or 0),
+                       x.standard_line, x.master_item)
+    )
+
+    if not comparable:
+        ws.append(["(아직 예상↔실제 비교가 가능한 교체 이력이 없습니다. 상세 시트의 '기준설정'·'기록없음'을 참고하세요.)"])
+        ws[ws.max_row][0].font = _FONT_GRAY
+        _auto_width(ws)
+        return
+
+    for j in comparable:
+        ws.append([
+            j.standard_line, j.process, j.master_item, j.grade,
+            _date_str(j.expected_date), _date_str(j.actual_date),
+            j.deviation_days if j.deviation_days is not None else "",
+            _deviation_label(j), j.verdict,
+        ])
+        fill = _VERDICT_FILL.get(j.verdict)
+        if fill:
+            for cell in ws[ws.max_row]:
+                cell.fill = fill
+    _auto_width(ws)
+    ws.freeze_panes = "A2"
+
+
+def _sheet_detail(ws, judgements) -> None:
+    """전체 항목을 빠짐없이 보여주는 시트.
+
+    비교 가능한 판정(조기/정시/지연/미교체)과 기준설정을 위에,
+    '기록없음'(아직 교체 이력이 없어 비교 불가)은 맨 아래로 모아
+    '기록없음'임을 명시한다.
+    """
+    header = [
+        "호기", "공정(설비)", "교체 항목", "등급", "주기(일)",
+        "예상교체일", "실제교체일", "편차_일", "빠름/늦음",
+        "직전교체일", "판정", "출처", "확인필요", "원문",
+    ]
+    ws.append(header)
+    for cell in ws[1]:
+        cell.font = _FONT_BOLD
+
+    def _sort_key(x):
+        no_record = 1 if x.verdict == VERDICT_NO_RECORD else 0
+        return (no_record, x.standard_line, x.process, x.master_item,
+                x.actual_date or dt.date.min)
+
+    for j in sorted(judgements, key=_sort_key):
         ws.append([
             j.standard_line, j.process, j.master_item, j.grade, j.cycle_days,
-            _date_str(j.prev_date), _date_str(j.expected_date), _date_str(j.actual_date),
+            _date_str(j.expected_date), _date_str(j.actual_date),
             j.deviation_days if j.deviation_days is not None else "",
+            _deviation_label(j),
+            _date_str(j.prev_date),
             j.verdict, j.source, j.need_check, j.raw_text,
         ])
         row = ws[ws.max_row]
@@ -169,6 +245,8 @@ def _sheet_detail(ws, judgements) -> None:
             for cell in row:
                 cell.font = _FONT_GRAY
     _auto_width(ws)
+    ws.freeze_panes = "A2"
+
 
 
 def _sheet_overdue(ws, judgements) -> None:

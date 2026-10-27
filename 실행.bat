@@ -25,15 +25,21 @@ if not defined PYLAUNCH (
 rem --- 2) PATH 에 없으면 흔한 설치 경로를 직접 탐색 (WindowsApps 스텁은 제외) ---
 if not defined PYLAUNCH (
     for %%P in (
+        "%LOCALAPPDATA%\Programs\Python\Python315\python.exe"
+        "%LOCALAPPDATA%\Programs\Python\Python314\python.exe"
         "%LOCALAPPDATA%\Programs\Python\Python313\python.exe"
         "%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
         "%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
         "%LOCALAPPDATA%\Programs\Python\Python310\python.exe"
         "%LOCALAPPDATA%\Programs\Python\Python39\python.exe"
+        "%ProgramFiles%\Python315\python.exe"
+        "%ProgramFiles%\Python314\python.exe"
         "%ProgramFiles%\Python313\python.exe"
         "%ProgramFiles%\Python312\python.exe"
         "%ProgramFiles%\Python311\python.exe"
         "%ProgramFiles%\Python310\python.exe"
+        "C:\Python315\python.exe"
+        "C:\Python314\python.exe"
         "C:\Python313\python.exe"
         "C:\Python312\python.exe"
         "C:\Python311\python.exe"

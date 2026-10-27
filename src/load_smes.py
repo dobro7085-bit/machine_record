@@ -33,8 +33,11 @@ class SmesRow:
     combined_text: str
 
 
-def _iter_xls_files(smes_arg: list[str] | str) -> list[Path]:
-    args = [smes_arg] if isinstance(smes_arg, str) else list(smes_arg)
+def _iter_xls_files(smes_arg: list[str] | str | Path) -> list[Path]:
+    if isinstance(smes_arg, (str, Path)):
+        args: list = [smes_arg]
+    else:
+        args = list(smes_arg)
     files: list[Path] = []
     for a in args:
         p = Path(a)
@@ -54,7 +57,7 @@ def _resolve_line(equipment: str, linecode: str, config: Config) -> str:
 
 
 def load_smes(
-    smes_arg: list[str] | str, config: Config
+    smes_arg: list[str] | str | Path, config: Config
 ) -> tuple[list[SmesRow], list[ParseError]]:
     files = _iter_xls_files(smes_arg)
     rows: list[SmesRow] = []

@@ -1,6 +1,8 @@
 """SMES 복수 파일 병합·중복 제거 테스트 (실제 샘플 .xls 를 두 번 전달)."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from src.load_smes import load_smes
 from tests.conftest import make_config
 
@@ -10,6 +12,13 @@ SAMPLE = "data_sample/02_전산_교체이력_샘플.xls"
 def test_single_file_loads():
     config = make_config()
     rows, errors = load_smes(SAMPLE, config)
+    assert len(rows) > 0
+    assert errors == []
+
+
+def test_single_path_object_loads():
+    config = make_config()
+    rows, errors = load_smes(Path(SAMPLE), config)
     assert len(rows) > 0
     assert errors == []
 
